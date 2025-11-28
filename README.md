@@ -9,7 +9,7 @@ Projet réalisé par **OCLOO Leslie**, **ANTOINE David**, et **MARQUES LEBEN Mic
 Ce projet consiste à concevoir et programmer une **serrure électronique** capable de déverrouiller une porte grâce à la saisie d’un **code secret** via un **clavier matriciel 4x4**.  
 Lorsqu’un utilisateur entre le bon code, un **servo-moteur** (ou relais) active l’ouverture de la serrure.
 
-Ce système vise à reproduire un mécanisme de verrouillage sécurisé simple, basé sur l'Arduino MEGA et l'utilisation d’entrées numériques.
+Ce système vise à reproduire un mécanisme de verrouillage sécurisé simple, basé sur l'Arduino UNO et l'utilisation d’entrées numériques.
 
 ---
 
