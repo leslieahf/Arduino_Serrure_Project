@@ -3,7 +3,7 @@
 const int ROW_NUM = 4;
 const int COLUMN_NUM = 4;
 int i = 0;
-int false_try = 1; //Pour compter les mauvaise saisis
+int false_try = 1; //Pour compter les mauvaises saisies
 char mdp[4] = {'1','2','3','4'};
 char saisi[4];
 char keys[ROW_NUM][COLUMN_NUM] = {
@@ -20,8 +20,8 @@ Keypad keypad = Keypad(makeKeymap(keys), pin_rows, pin_column, ROW_NUM, COLUMN_N
 
 void setup() {
   Serial.begin(9600); // Initialisation de la console
-  Serial.println("Taper sur le clavier...");
-  Serial.print("code : ");
+  Serial.println("Tapez sur le clavier...");
+  Serial.print("Code : ");
 }
 
 void loop() {
@@ -32,20 +32,20 @@ void loop() {
       Serial.println(key);
       saisi[i]= key;
       i++;
-    }else if(key == '#'){
+    }
+    else if(key == '#'){
       if(memcmp(saisi, mdp, 4) == 0){
-        Serial.print("code correct ");
-      }else{
-        Serial.print("code mauvais ");
+        Serial.print("Accès autorisé ");
+      }
+      else{
+        Serial.print("Code incorrect ");
         if(false_try == 3){
-          Serial.print("\nTrop de mauvaises saisies, serrure bloqué \n");
-          Serial.print("Réessayer dans 1 minute");
+          Serial.print("\nTrop de mauvaises saisies, serrure bloquée \n");
+          Serial.print("Réessayez dans 1 minute");
           delay(60000);
           false_try = 0;
-        }else{
-          /*Serial.print("Encore");
-          Serial.print(false_try);
-          Serial.print("essaie");*/
+        }
+        else{
           sprintf(buffer, "Encore %d essais", 3 - false_try);
           Serial.println(buffer);
           false_try++;
@@ -54,7 +54,8 @@ void loop() {
       Serial.print("\ncode : ");
       memset(saisi, ' ', 4);
       i = 0;
-    }else{
+    }
+    else{
       Serial.println("Tapez sur # pour valider votre mot de passe");
     }
     delay(150); // Anti-rebond
