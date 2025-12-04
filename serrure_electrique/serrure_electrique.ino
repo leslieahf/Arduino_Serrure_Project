@@ -1,9 +1,12 @@
 #include <Keypad.h>
+#include <LiquidCrystal.h>
+#include <Servo.h>
 
 const int ROW_NUM = 4;
 const int COLUMN_NUM = 4;
-int i = 0;
-int false_try = 1; //Pour compter les mauvaises saisies
+int i = 0; // Pour compter le nombre de touches saisies
+int false_try = 0; // Pour compter le nombre de mauvaises saisies
+
 char mdp[4] = {'1','2','3','4'};
 char saisi[4];
 char keys[ROW_NUM][COLUMN_NUM] = {
@@ -13,50 +16,104 @@ char keys[ROW_NUM][COLUMN_NUM] = {
   {'*','0','#','D'}
 };
 
+LiquidCrystal lcd(12, 11, A0, A1, A2, A3);
+
+Servo servo_serr; // Création de l'objet Servo
+const int angleFermeture = 0; // Position "Fermé"
+const int angleOuverture = 90; // Position "Ouvert" 
+
 byte pin_rows[ROW_NUM] = {9, 8, 7, 6};
 byte pin_column[COLUMN_NUM] = {5, 4, 3, 2};
 
 Keypad keypad = Keypad(makeKeymap(keys), pin_rows, pin_column, ROW_NUM, COLUMN_NUM);
 
+//const int pinPWM = 9;
+
 void setup() {
+  //pinMode(pinPWM, OUTPUT);
+  //analogWrite(pinPWM, 100);
+  servo_serr.attach(A4); // Attache l'objet Servo à la broche A4 de l'Arduino
+  servo_serr.write(angleFermeture); // Initialisation du servo en position "Fermé"
   Serial.begin(9600); // Initialisation de la console
+  lcd.begin(16,2); // Initialisation de l'écran lcd 16x2
+
+  // Affichage initial sur la console
   Serial.println("Tapez sur le clavier...");
   Serial.print("Code : ");
+
+  // Affichage initial sur l'écran
+  lcd.print("Saisir le code : ");
+  lcd.setCursor(0,1);
 }
 
 void loop() {
   char key = keypad.getKey();
   char buffer[50];
+
   if (key) { 
-    if(i != 4 && key != '#'){
-      Serial.println(key);
+    // Enregistrement de la saisie
+    if(i < 4 && key != '#'){
+      Serial.print(key); // Affichage sur le moniteur
       saisi[i]= key;
+      // Masquer la saisie par '*'
+      lcd.setCursor(i,1); 
+      lcd.print('*'); 
       i++;
     }
+    // Vérification de la saisie
     else if(key == '#'){
-      if(memcmp(saisi, mdp, 4) == 0){
-        Serial.print("Accès autorisé ");
+      lcd.clear();
+      // Cas où l'utilisateur valide avant d'avoir 4 chiffres
+      if(i!=4){
+        Serial.println("Code incomplet !");
+        lcd.print("CODE INCOMPLET !");
       }
+      // Cas où l'utilisateur tape un code valide
+      else if(memcmp(saisi, mdp, 4) == 0){
+        Serial.println("Accès autorisé !");
+        lcd.print("ACCES AUTORISE !");
+        // Ouverture de la porte puis fermeture
+        servo_serr.write(angleOuverture);
+        delay(3000);
+        servo_serr.write(angleFermeture);
+        false_try = 0; // Réinitialisation des tentatives
+      }
+      // Cas où l'utilisateur tape un code invalide
       else{
-        Serial.print("Code incorrect ");
+        Serial.println("Code incorrect !");
+        lcd.print("CODE INCORRECT !");
+        false_try++; // Incrémente après un échec
+        // Blocage après 3 tentatives
         if(false_try == 3){
-          Serial.print("\nTrop de mauvaises saisies, serrure bloquée \n");
-          Serial.print("Réessayez dans 1 minute");
+          Serial.println("Trop de mauvaises saisies. Serrure bloquée !");
+          Serial.println("Réessayez dans 1 minute");
+          lcd.print("VERROUILLE !");
+          lcd.setCursor(0, 1);
+          lcd.print("ATTENDRE 1 MIN");
           delay(60000);
-          false_try = 0;
+          false_try = 0; // Réinitialisation des tentatives après le délai
         }
+        // Affichage des essais restants
         else{
           sprintf(buffer, "Encore %d essais", 3 - false_try);
           Serial.println(buffer);
-          false_try++;
+          lcd.setCursor(0, 1);
+          lcd.print(buffer);
         }
       }
-      Serial.print("\ncode : ");
+      // Prépare la console pour la nouvelle saisie
       memset(saisi, ' ', 4);
       i = 0;
+      Serial.print("Code : ");
+      delay(2000);
+      // Prépare l'écran pour la nouvelle saisie
+      lcd.clear();
+      lcd.print("Saisir le code :");
+      lcd.setCursor(0, 1);
     }
+    // Cas où l'utilisateur n'appuie pas sur '#' pour valider sa saisie
     else{
-      Serial.println("Tapez sur # pour valider votre mot de passe");
+      Serial.println("Tapez sur '#' pour valider votre mot de passe");
     }
     delay(150); // Anti-rebond
   }
