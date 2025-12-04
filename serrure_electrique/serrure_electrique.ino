@@ -87,7 +87,7 @@ void loop() {
         if(false_try == 3){
           Serial.println("Trop de mauvaises saisies. Serrure bloquée !");
           Serial.println("Réessayez dans 1 minute");
-          lcd.print("VERROUILLE !");
+          lcd.print("SERRURE BLOQUEE !");
           lcd.setCursor(0, 1);
           lcd.print("ATTENDRE 1 MIN");
           delay(60000);
