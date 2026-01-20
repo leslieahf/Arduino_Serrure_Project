@@ -1,14 +1,15 @@
 #include <Keypad.h>
 #include <LiquidCrystal.h>
 #include <Servo.h>
+#include <EEPROM.h>
 
 const int ROW_NUM = 4;
 const int COLUMN_NUM = 4;
 int i = 0; // Pour compter le nombre de touches saisies
 int false_try = 0; // Pour compter le nombre de mauvaises saisies
 
-char mdp[4] = {'1','2','3','4'};
-char saisi[4];
+char mdp[5] = "1234"; 
+char saisi[5];
 char keys[ROW_NUM][COLUMN_NUM] = {
   {'1','2','3','A'},
   {'4','5','6','B'},
@@ -37,6 +38,13 @@ void setup() {
   Serial.begin(9600); // Initialisation de la console
   lcd.begin(16,2); // Initialisation de l'écran lcd 16x2
 
+  // --- AJOUT POUR LA BASE DE DONNEES ---
+  // Si la mémoire est vide, on garde "1234", sinon on lit la mémoire
+  if (EEPROM.read(0) != 255) {
+     for (int j=0; j<4; j++) mdp[j] = char(EEPROM.read(j));
+     mdp[4] = '\0'; // Fermeture de la chaine
+  }
+
   // Affichage initial sur la console
   Serial.println("Tapez sur le clavier...");
   Serial.print("Code : ");
@@ -49,6 +57,63 @@ void setup() {
 void loop() {
   char key = keypad.getKey();
   char buffer[50];
+
+  // GESTION DU SITE WEB (COMMANDES USB)
+  if (Serial.available() > 0) {
+    String msg = Serial.readStringUntil('\n');
+    msg.trim();
+    
+    // --- LE SITE DEMANDE DE VERIFIER UN CODE ---
+    if (msg.startsWith("CHECK:")) {
+       String codeWeb = msg.substring(6);
+       
+       // Si le code du site est BON
+       if (codeWeb == String(mdp)) {
+           Serial.println("RESULT:SUCCESS"); // Signal au site
+           Serial.println("Accès WEB autorisé !");
+           lcd.clear(); lcd.print("ACCES WEB OK !");
+           servo_serr.write(angleOuverture);
+           delay(3000);
+           servo_serr.write(angleFermeture);
+           false_try = 0;
+           // Reset écran
+           memset(saisi, 0, 5); i = 0;
+           lcd.clear(); lcd.print("Saisir le code :"); lcd.setCursor(0, 1);
+       }
+       // Si le code du site est MAUVAIS
+       else {
+           Serial.println("RESULT:FAIL"); // Signal au site
+           Serial.println("Code WEB incorrect !");
+           lcd.clear(); lcd.print("CODE WEB FAUX !");
+           false_try++;
+           
+           if(false_try >= 3){
+               Serial.println("RESULT:LOCKED");
+               lcd.setCursor(0, 1); lcd.print("BLOQUE 1 MIN");
+               delay(60000);
+               false_try = 0;
+           }
+           delay(2000);
+           // Reset écran
+           memset(saisi, 0, 5); i = 0;
+           lcd.clear(); lcd.print("Saisir le code :"); lcd.setCursor(0, 1);
+       }
+    }
+    // --- LE SITE DEMANDE DE CHANGER LE MOT DE PASSE ---
+    else if (msg.startsWith("SET:")) {
+      String newCode = msg.substring(4);
+      for (int j=0; j<4; j++) {
+          EEPROM.write(j, newCode[j]); // Ecrit dans la mémoire
+          mdp[j] = newCode[j];         // Met à jour la variable
+      }
+      Serial.println("SUCCESS:CODE_UPDATED"); 
+      lcd.clear(); lcd.print("CODE CHANGE !");
+      delay(2000);
+      // Reset écran
+      memset(saisi, 0, 5); i = 0;
+      lcd.clear(); lcd.print("Saisir le code :"); lcd.setCursor(0, 1);
+    }
+  }
 
   if (key) { 
     // Enregistrement de la saisie
